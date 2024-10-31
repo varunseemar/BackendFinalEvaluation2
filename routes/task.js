@@ -174,6 +174,33 @@ router.put('/edit/:taskId', async(req, res) => {
     }
 });
 
+router.put('/editAll', async(req, res) => {
+    try{
+        const { currentEmail, email } = req.body;
+        const tasks = await TaskSchema.find({ creator: currentEmail });
+        if(tasks.length === 0){
+            return res.status(404).json({ message: "No tasks found for this user" });
+        }
+        const tasksToUpdate = tasks.filter(task => 
+            !task.taskassigned.some(assignee => assignee.assignee === email)
+        );
+        tasksToUpdate.forEach(async(task)=>{
+            task.taskassigned.push({assignee: email});
+            await task.save();
+        });
+        if(tasksToUpdate.length > 0){
+            res.status(200).json({message: "Task(s) updated successfully",updatedCount: tasksToUpdate.length});
+        } 
+        else{
+            res.status(200).json({message: "No new assignee added, email already assigned to all tasks"});
+        }
+    } 
+    catch(error){
+        throw new Error(error.message)
+    }
+});
+
+
 router.get('/edit/:taskId', async(req,res)=>{
     try{
         const {taskId} = req.params;
